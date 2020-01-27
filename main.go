@@ -1,10 +1,9 @@
 package main
 
 import (
-	"database/sql"
 	"github.com/BurntSushi/toml"
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/nlopes/slack"
+	"github.com/wasuken/slack-memo-bot/dbio"
 	"os"
 )
 
@@ -19,8 +18,8 @@ func loadFiles(filepaths []string) string {
 
 var DEFAULT_LOAD_FILES []string = []string{
 	"config.tml",
-	"~/.config/slackbot-rss/config.tml",
-	"/etc/slackbot/config.tml"}
+	"~/.config/slack-memo-bot/config.tml",
+	"/etc/slack-memo-bot/config.tml"}
 
 type Config struct {
 	Slack SlackConfig
@@ -48,16 +47,9 @@ func main() {
 		switch ev := msg.Data.(type) {
 		case *slack.MessageEvent:
 			if ev.Channel == config.Slack.WatchChannel {
+				dbio.SaveMemo(ev.Text)
 				rtm.SendMessage(rtm.NewOutgoingMessage("test", ev.Channel))
 			}
 		}
 	}
-}
-
-func writeDB(text string) (responseText string) {
-
-}
-
-func parseText(text string) {
-
 }
