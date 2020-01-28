@@ -3,17 +3,88 @@ package dbio
 import (
 	"database/sql"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/wasuken/slack-memo-bot/util"
 	"log"
-	"strings"
 )
 
-func SaveMemo(slackText string) string {
-	text, tagList := parseText(slackText)
-
-	if len(tagList) <= 0 {
-		return "no tags"
+func DeleteMemoTags(tagList []string) {
+	db, err := sql.Open("sqlite3", "./db.sqlite")
+	if err != nil {
+		log.Fatal(err)
 	}
+	defer db.Close()
+	for _, tag := range tagList {
+		deleteMemoTag(db, tag)
+	}
+}
 
+func deleteMemoTag(db *sql.DB, tag string) {
+	rows, err := db.Query("SELECT memos.id as mid, name FROM memos join memo_tags as mt on mt.memo_id = memos.id join tags on mt.tag_id = tags.id where name = ?", tag)
+	if err != nil {
+		log.Fatal(err)
+	}
+	midList := []int{}
+	nameList := []string{}
+	for rows.Next() {
+		var mid int
+		var name string
+		if err := rows.Scan(&mid, &name); err != nil {
+			log.Fatal(err)
+		}
+		midList = append(midList, mid)
+		nameList = append(nameList, name)
+	}
+	rows.Close()
+	for i := 0; i < len(midList); i++ {
+		_, err := db.Exec("delete from memo_tags where memo_id = ?", midList[i])
+		if err != nil {
+			log.Fatal(err)
+		}
+		_, err = db.Exec("delete from memos where id = ?", midList[i])
+		if err != nil {
+			log.Fatal(err)
+		}
+		_, err = db.Exec("delete from tags where name = ?", nameList[i])
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+}
+
+// メモを全てまとめ、結合した文字列を返す。
+func OutputMemo(outputType string, tagList []string) (message string) {
+	db, err := sql.Open("sqlite3", "./db.sqlite")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+	// tagごとに並び替えを行い、その中で生成時間順で並び替える。
+	rows, err := db.Query("SELECT name, contents, updated_at FROM memos join memo_tags as mt on mt.memo_id = memos.id join tags on mt.tag_id = tags.id order by name desc, date(updated_at, 'localtime')")
+	tagMemoMap := map[string]string{}
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var contents string
+		var name string
+		var updated_at string
+		if err := rows.Scan(&name, &contents, &updated_at); err != nil {
+			log.Fatal(err)
+		}
+		tagMemoMap[name] += "\n" + contents + "\n"
+	}
+	switch outputType {
+	case "markdown":
+		for k, v := range tagMemoMap {
+			message += "# " + k + "\n\n"
+			message += v + "\n\n"
+		}
+	}
+	return message
+}
+
+func SaveMemo(text string, tagList []string) string {
 	db, err := sql.Open("sqlite3", "./db.sqlite")
 	if err != nil {
 		log.Fatal(err)
@@ -55,7 +126,7 @@ func insertTags(db *sql.DB, tagList []string) []*TagRecord {
 		inserted_tag_list = append(inserted_tag_list, tagrec.name)
 	}
 	for _, tag := range tagList {
-		if !contains(inserted_tag_list, tag) {
+		if !util.Contains(inserted_tag_list, tag) {
 			_, err := db.Exec("insert into tags(name) values(?)", tag)
 			if err != nil {
 				log.Fatal(err)
@@ -65,7 +136,7 @@ func insertTags(db *sql.DB, tagList []string) []*TagRecord {
 	inserted_tagrec_list = selectInsertedTagList(db)
 	inserting_tagrec_list := []*TagRecord{}
 	for _, tagrec := range inserted_tagrec_list {
-		if contains(tagList, tagrec.name) {
+		if util.Contains(tagList, tagrec.name) {
 			inserting_tagrec_list = append(inserting_tagrec_list, tagrec)
 		}
 	}
@@ -97,27 +168,4 @@ func selectInsertedTagList(db *sql.DB) []*TagRecord {
 		inserted_tagrec_list = append(inserted_tagrec_list, createTagRecord(id, name))
 	}
 	return inserted_tagrec_list
-}
-
-func contains(lst []string, s string) bool {
-	for _, v := range lst {
-		if v == s {
-			return true
-		}
-	}
-	return false
-}
-
-func parseText(text string) (string, []string) {
-	nodes := strings.Split(text, " ")
-	textList := []string{}
-	tagList := []string{}
-	for _, node := range nodes {
-		if node[0:1] == "$" {
-			tagList = append(tagList, strings.Replace(node, "$", "", -1))
-		} else {
-			textList = append(textList, node)
-		}
-	}
-	return strings.Join(textList, ""), tagList
 }
