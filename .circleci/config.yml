@@ -8,7 +8,7 @@ jobs:
         only:
           - dev
 
-    working_directory: /go/src/github.com/wasuken/{{REPO_NAME}}
+    working_directory: /go/src/github.com/wasuken/slack-memo-bot
     steps:
       - checkout
       - run: go get -v -t -d ./...
