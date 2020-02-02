@@ -7,12 +7,7 @@ import (
 	"log"
 )
 
-func DeleteMemoTags(tagList []string) {
-	db, err := sql.Open("sqlite3", "./db.sqlite")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
+func DeleteMemoTags(db *sql.DB, tagList []string) {
 	for _, tag := range tagList {
 		deleteMemoTag(db, tag)
 	}
@@ -52,12 +47,7 @@ func deleteMemoTag(db *sql.DB, tag string) {
 }
 
 // メモを全てまとめ、結合した文字列を返す。
-func OutputMemo(outputType string, tagList []string) (message string) {
-	db, err := sql.Open("sqlite3", "./db.sqlite")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
+func OutputMemo(db *sql.DB, outputType string, tagList []string) (message string) {
 	// tagごとに並び替えを行い、その中で生成時間順で並び替える。
 	rows, err := db.Query("SELECT name, contents, updated_at FROM memos join memo_tags as mt on mt.memo_id = memos.id join tags on mt.tag_id = tags.id order by name desc, date(updated_at, 'localtime')")
 	tagMemoMap := map[string]string{}
@@ -84,12 +74,7 @@ func OutputMemo(outputType string, tagList []string) (message string) {
 	return message
 }
 
-func SaveMemo(text string, tagList []string) string {
-	db, err := sql.Open("sqlite3", "./db.sqlite")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
+func SaveMemo(db *sql.DB, text string, tagList []string) string {
 	// insert tags table, and get tags_id.
 	tagrecs := insertTags(db, tagList)
 	// insert to memo table, and get memo_id.
@@ -158,6 +143,7 @@ func selectInsertedTagList(db *sql.DB) []*TagRecord {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	defer rows.Close()
 	for rows.Next() {
 		var id int
