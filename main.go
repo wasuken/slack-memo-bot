@@ -8,26 +8,13 @@ import (
 	"github.com/wasuken/slack-memo-bot/dbio"
 	"github.com/wasuken/slack-memo-bot/util"
 	"log"
-	"os"
-	"os/user"
 	"strings"
 )
 
-func loadFiles(filepaths []string) string {
-	usr, _ := user.Current()
-	f := strings.Replace(filepaths[0], "~", usr.HomeDir, 1)
-	_, err := os.Stat(f)
-	if err != nil {
-		return loadFiles(filepaths[1:])
-	} else {
-		return f
-	}
-}
-
-var DEFAULT_LOAD_FILES []string = []string{
-	"config.tml",
-	"~/.config/slack-memo-bot/config.tml",
-	"/etc/slack-memo-bot/config.tml"}
+var DEFAULT_LOAD_PATH_LIST []string = []string{
+	"./",
+	"~/.config/",
+	"/etc/slack-memo-bot/"}
 
 type Config struct {
 	Slack SlackConfig
@@ -40,14 +27,14 @@ type SlackConfig struct {
 
 func main() {
 	var config Config
-	_, err := toml.DecodeFile(loadFiles(DEFAULT_LOAD_FILES), &config)
+	_, err := toml.DecodeFile(util.LoadFiles(DEFAULT_LOAD_PATH_LIST, "config.tml"), &config)
 	if err != nil {
 		panic(err)
 	}
 	api := slack.New(
 		config.Slack.Apitoken,
 	)
-	db, err := sql.Open("sqlite3", "./db.sqlite")
+	db, err := sql.Open("sqlite3", util.LoadFiles(DEFAULT_LOAD_PATH_LIST, "db.sqlite"))
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -1,6 +1,8 @@
 package util
 
 import (
+	"os"
+	"os/user"
 	"strings"
 )
 
@@ -10,7 +12,10 @@ func ParseText(text string) (string, []string) {
 	tagList := []string{}
 	for _, node := range nodes {
 		if node[0:1] == "$" {
-			tagList = append(tagList, strings.Replace(node, "$", "", -1))
+			rep := strings.Replace(node, "$", "", -1)
+			if !Contains(tagList, rep) {
+				tagList = append(tagList, rep)
+			}
 		} else {
 			textList = append(textList, node)
 		}
@@ -25,4 +30,15 @@ func Contains(lst []string, s string) bool {
 		}
 	}
 	return false
+}
+
+func LoadFiles(filepaths []string, filename string) string {
+	usr, _ := user.Current()
+	f := strings.Replace(filepaths[0], "~", usr.HomeDir, 1) + filename
+	_, err := os.Stat(f)
+	if err != nil {
+		return LoadFiles(filepaths[1:], filename)
+	} else {
+		return f
+	}
 }
