@@ -12,6 +12,7 @@ jobs:
     steps:
       - checkout
       - run: go get -v -t -d ./...
+      - run: touch config.tml
       - run: go test -v ./...
       # push master
       - run: git config user.email "wevorence@gmail.com"
