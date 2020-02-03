@@ -9,11 +9,14 @@ import (
 	"github.com/wasuken/slack-memo-bot/util"
 	"log"
 	"os"
+	"os/user"
 	"strings"
 )
 
 func loadFiles(filepaths []string) string {
-	_, err := os.Stat(filepaths[0])
+	usr, _ := user.Current()
+	f := strings.Replace(filepaths[0], "~", usr.HomeDir, 1)
+	_, err := os.Stat(f)
 	if err != nil {
 		return loadFiles(filepaths[1:])
 	} else {
