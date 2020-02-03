@@ -13,7 +13,7 @@ import (
 
 var DEFAULT_LOAD_PATH_LIST []string = []string{
 	"./",
-	"~/.config/",
+	"~/.config/slack-memo-bot/",
 	"/etc/slack-memo-bot/"}
 
 type Config struct {
