@@ -20,7 +20,7 @@ func loadFiles(filepaths []string) string {
 	if err != nil {
 		return loadFiles(filepaths[1:])
 	} else {
-		return filepaths[0]
+		return f
 	}
 }
 
