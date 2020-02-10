@@ -1,6 +1,7 @@
 create table memos(
 	   id integer primary key,
 	   contents text,
+	   user text not null,
 	   created_at TEXT NOT NULL DEFAULT (DATETIME('now', 'localtime')),
 	   updated_at TEXT NOT NULL DEFAULT (DATETIME('now', 'localtime'))
 );

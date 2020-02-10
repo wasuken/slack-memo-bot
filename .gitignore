@@ -1,3 +1,5 @@
 *.sqlite
 config.tml
 slack-memo-bot
+go.mod
+go.sum

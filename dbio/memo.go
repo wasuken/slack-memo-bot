@@ -47,9 +47,9 @@ func deleteMemoTag(db *sql.DB, tag string) {
 }
 
 // メモを全てまとめ、結合した文字列を返す。
-func OutputMemo(db *sql.DB, outputType string, tagList []string) (message string) {
+func OutputMemo(db *sql.DB, outputType string, tagList []string, user string) (message string) {
 	// tagごとに並び替えを行い、その中で生成時間順で並び替える。
-	rows, err := db.Query("SELECT name, contents, updated_at FROM memos join memo_tags as mt on mt.memo_id = memos.id join tags on mt.tag_id = tags.id order by name desc, date(updated_at, 'localtime')")
+	rows, err := db.Query("SELECT name, contents, updated_at FROM memos join memo_tags as mt on mt.memo_id = memos.id join tags on mt.tag_id = tags.id where user = ? order by name desc, date(updated_at, 'localtime')", user)
 	tagMemoMap := map[string]string{}
 	if err != nil {
 		log.Fatal(err)
@@ -74,11 +74,11 @@ func OutputMemo(db *sql.DB, outputType string, tagList []string) (message string
 	return message
 }
 
-func SaveMemo(db *sql.DB, text string, tagList []string) string {
+func SaveMemo(db *sql.DB, text string, tagList []string, user string) string {
 	// insert tags table, and get tags_id.
 	tagrecs := insertTags(db, tagList)
 	// insert to memo table, and get memo_id.
-	memoId := insertMemo(db, text)
+	memoId := insertMemo(db, text, user)
 	// insert to memo_tags table from inserted tags and memo
 	insertTagMemos(db, tagrecs, memoId)
 	return "save!"
@@ -93,8 +93,8 @@ func insertTagMemos(db *sql.DB, tagrecs []*TagRecord, memoId int64) {
 	}
 }
 
-func insertMemo(db *sql.DB, text string) int64 {
-	result, err := db.Exec("insert into memos(contents) values(?)", text)
+func insertMemo(db *sql.DB, text, user string) int64 {
+	result, err := db.Exec("insert into memos(contents, user) values(?, ?)", text, user)
 	if err != nil {
 		log.Fatal(err)
 	}

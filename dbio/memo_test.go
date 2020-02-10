@@ -55,9 +55,10 @@ func TestInsertTags(t *testing.T) {
 func TestSaveMemo(t *testing.T) {
 	db := setup()
 	defer db.Close()
+	user := "foo"
 
 	text, tagList := util.ParseText("これはテスト $hoge $fuga")
-	SaveMemo(db, text, tagList)
+	SaveMemo(db, text, tagList, user)
 
 	// tags check
 	expectedTagList := []string{"hoge", "fuga"}
@@ -68,11 +69,14 @@ func TestSaveMemo(t *testing.T) {
 		}
 	}
 	// memos check
-	expectedMemoList := []string{"これはテスト"}
+	expectedMemoList := []string{"これはテスト", "foo"}
 	ml := memosListFromDB(db)
 	for _, rec := range ml {
 		if !util.Contains(expectedMemoList, rec[1]) {
 			t.Errorf("failed insert memo contents(%s).", rec[1])
+		}
+		if rec[2] != user {
+			t.Errorf("failed insert memo user(%s).", rec[2])
 		}
 	}
 
@@ -118,15 +122,15 @@ func tagsListFromDB(db *sql.DB) (result [][]string) {
 // 型変換だるいのでレコードは強制的にstringに変換される
 func memosListFromDB(db *sql.DB) (result [][]string) {
 	result = [][]string{}
-	rows := queryRows(db, "select id, contents from memos")
+	rows := queryRows(db, "select id, contents, user from memos")
 	defer rows.Close()
 
 	for rows.Next() {
-		var id, contents string
-		if err := rows.Scan(&id, &contents); err != nil {
+		var id, contents, user string
+		if err := rows.Scan(&id, &contents, &user); err != nil {
 			log.Fatal(err)
 		}
-		result = append(result, []string{id, contents})
+		result = append(result, []string{id, contents, user})
 	}
 	return result
 }

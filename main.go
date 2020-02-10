@@ -49,14 +49,14 @@ func main() {
 			if ev.Channel == config.Slack.WatchChannel {
 				text, tagList := util.ParseText(ev.Text)
 				if strings.HasPrefix(strings.Trim(text, " 　"), "!!output!!") {
-					message := dbio.OutputMemo(db, tagList[0], tagList[1:])
+					message := dbio.OutputMemo(db, tagList[0], tagList[1:], ev.User)
 					rtm.SendMessage(rtm.NewOutgoingMessage(message, ev.Channel))
 				} else if strings.HasPrefix(strings.Trim(text, " 　"), "!!delete!!") {
 					dbio.DeleteMemoTags(db, tagList)
-					message := dbio.OutputMemo(db, "markdown", tagList)
+					message := dbio.OutputMemo(db, "markdown", tagList, ev.User)
 					rtm.SendMessage(rtm.NewOutgoingMessage(message, ev.Channel))
 				} else {
-					dbio.SaveMemo(db, text, tagList)
+					dbio.SaveMemo(db, text, tagList, ev.User)
 				}
 			}
 		}
