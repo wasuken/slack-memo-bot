@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -87,6 +88,14 @@ func TestSaveMemo(t *testing.T) {
 		if !AryContains(expectedMemoTagsList, rec) {
 			t.Errorf("failed inserted memo_tags(memo_id:%s, tag_id:%s)", rec[0], rec[1])
 		}
+	}
+
+	expectedOutput := "#hogeこれはテスト#fugaこれはテスト"
+	actualOutputMemo := OutputMemo(db, "markdown", expectedTagList, user)
+
+	regxNewlineAndSpace := regexp.MustCompile(`\s|\r|\n`)
+	if expectedOutput != regxNewlineAndSpace.ReplaceAllString(actualOutputMemo, "") {
+		t.Errorf("failed output memo(:%s)", actualOutputMemo)
 	}
 
 	os.Remove(TEST_DB_PATH)
